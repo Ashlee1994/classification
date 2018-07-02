@@ -1,0 +1,200 @@
+; This code is the newest code 2015/09/15
+;This is a header
+
+[input] = 'sa'
+[outputname]='deepsnr1_{*******[parnum]}'
+[output]=[outputname]'@{*******[num2]}'
+[angledocs] = 'angsett_{*******[parnum]}'
+[shiftdocs] = 'shift_{*******[parnum]}'
+[ctfdocs] = '3eulerctf_{*******[parnum]}'
+[starheaddocs] = 'starhead_{*******[parnum]}'
+
+[parnum]=2000
+[dim]=160
+[maxshift]=10
+[angpix]=1.74
+;add_noise
+[SNR]=0.01
+[aveNoise]=0
+[stdNoise]=1.0/SQRT([SNR])
+[start]=1
+
+; add defocus
+[maxd] = 30000
+[mind] = 5000
+
+
+; radius for norm by relion
+[radius]=[dim]/2
+
+IQ FI [existfa] [isopenfa]
+[angledocs]
+
+
+IQ FI [existfs] [isopenfs]
+[shiftdocs]
+
+IQ FI [existfc] [isopenfc]
+[ctfdocs]
+
+IF ([existfa] .gt. 0) THEN
+DE
+[angledocs]
+ENDIF
+IF ([existfs] .gt. 0) THEN
+DE
+[shiftdocs]
+ENDIF
+IF ([existfc] .gt. 0) THEN
+DE
+[ctfdocs]
+ENDIF
+
+;ctf
+[Voltage]=200.00
+[spherical aberration]=2.7
+[wavelength]=0.02508
+[amplitudecontrast]=0.1
+[defocusanguler]=0.00
+[dum]=0.0 
+
+SD / _rlnVoltage #1
+[starheaddocs]
+SD / _rlnDefocusU #2 
+[starheaddocs]
+SD / _rlnDefocusV #3 
+[starheaddocs]
+SD / _rlnDefocusAngle #4 
+[starheaddocs]
+SD /  _rlnSphericalAberration #5
+[starheaddocs] 
+SD / _rlnAmplitudeContrast #6 
+[starheaddocs]
+SD / _rlnImageName #7
+[starheaddocs]
+
+
+
+; Generate an initial set of random Eulerian angles
+[dum]=0.0
+[num2]=1
+
+DO [i]=1,[parnum] 
+　　　[phi] = int(RAN([dum])*359)+1
+   [theta] = int(RAN([dum])*179)+1
+   [psi] = int(RAN([dum])*359)+1
+   SD [i],[phi],[theta],[psi]
+   [angledocs]
+
+   [x] = int((RAN([dum])-0.5)*[maxshift])
+   [y] = int((RAN([dum])-0.5)*[maxshift])
+   SD [i],[x],[y]
+   [shiftdocs]
+
+   PJ 3
+   [input]
+   [dim],[dim]
+   _99
+   [phi],[theta],[psi]
+
+
+   SH
+   _99
+   _1
+   [x],[y]
+   
+   ;ctf
+   ;[a] = RAN([dum])*20800+16600.
+   [a] = RAN([dum])*([maxd]-[mind])+[mind]
+   FT
+   _1
+   _2
+   
+   ; calculate CTF
+   TF C
+   _3
+   [sphericalaberration]        
+   [a],[wavelength]
+   [dim],[dim]    
+   1/2/[angpix]  
+   0.005,0.0 
+   0.0,0.0   
+   [amplitudecontrast],10000
+   -1      
+   
+   MUL
+   _2
+   _3
+   _4
+   *
+   ;reverse fourier transform
+   FT
+   _4
+   _5
+  
+   
+   CP 
+   _5
+   _6
+   
+   
+   SD [Voltage],[a],[a],[defocusanguler],[sphericalaberration],[amplitudecontrast]
+   [ctfdocs]
+   ;end ctf
+   
+   ;norm ctf
+   
+   
+   FS [min],[max],[ave],[std]
+   _6
+   
+   AR
+   _6
+   _7
+   (P1-[ave])/([std])
+   
+   MO
+   _8
+   [dim],[dim]
+   R
+   Y
+   [aveNoise],[stdNoise]
+   
+   PA
+   _8
+   _7
+   [start],[start]
+   
+   ;end add_noise
+   ;norm_noise
+   FS [min],[max],[ave],[std]
+   _7
+   
+   AR
+   _7
+   _9
+   (P1-[ave])/([std])
+   
+   CP
+   _9
+   [output]
+   
+   
+   [num2]=[num2]+1
+   
+
+ENDDO
+
+SD E
+   [shiftdocs]
+SD E
+   [angledocs]
+
+
+SYS
+relion_preprocess --operate_on [outputname].dat --o [outputname] --norm --bg_radius {***[radius]}  
+
+
+	
+
+EN
