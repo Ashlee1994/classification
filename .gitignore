@@ -3,7 +3,8 @@
 __pycache__/
 data/
 googlenet/
-resnet/
 spider_command.sh
 zcy/
-
+resnet/resnet_main.py
+resnet/output
+densenet
