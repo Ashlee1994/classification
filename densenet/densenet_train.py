@@ -2,9 +2,9 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import os,sys,shutil,time
-import resnet_model
 from utils import *
-from resnet_args import Train_Args
+from densenet_args import Train_Args
+import densenet_model 
 
 
 def train():
@@ -36,7 +36,7 @@ def train():
 
     with tf.Session() as sess:
         # deepem = dec14(args)
-        model = resnet_model.ResNet(args)
+        model = densenet_model.DenseNet(args)
         saver = tf.train.Saver(tf.global_variables(), max_to_keep = 100)
         sess.run(tf.global_variables_initializer())
         for e in range(args.num_epochs):
@@ -47,7 +47,7 @@ def train():
                 batch_x = train_x[args.batch_size*i:args.batch_size*(i+1)]
                 batch_y = train_y[args.batch_size*i:args.batch_size*(i+1)]       
                 #loss,accuracy,lr,_= sess.run([deepem.loss, deepem.accuracy,deepem.lr,deepem.optimizer], {deepem.X:batch_x, deepem.Y: batch_y})
-                loss,accuracy,lr,_= sess.run([model.cost, model.accuracy,model.lrn_rate,model.train_op], {model._images:batch_x, model.labels: batch_y})
+                loss,accuracy,lr,_= sess.run([model.cross_entropy, model.accuracy,model.lr,model.train_step], {model.images:batch_x, model.labels: batch_y})
                 #model.build_graph()
 
                 acc_train.append(accuracy)
@@ -70,7 +70,7 @@ def train():
                 for i in range(num_test_batch):
                     batch_x = test_x[args.batch_size*i:args.batch_size*(i+1)]
                     batch_y = test_y[args.batch_size*i:args.batch_size*(i+1)]
-                    accuracy = sess.run(model.accuracy,feed_dict={model._images:batch_x, model.labels: batch_y})
+                    accuracy = sess.run(model.accuracy,feed_dict={model.images:batch_x, model.labels: batch_y})
                     print('acc: %.6f'% (accuracy),flush=True)
                     acc_test.append(accuracy)
 

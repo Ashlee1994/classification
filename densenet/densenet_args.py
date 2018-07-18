@@ -1,9 +1,10 @@
 class Train_Args():
     is_training                 =       True
-    model_save_path             =       "./output/0.5/model/model-6_class-dec_3/"
-    model_filename              =       "resnet_model.py"
-    args_filename               =       "resnet_args.py"
+    model_save_path             =       "output/0.5/model/resnet-6_class-1/"
+    model_filename              =       "densenet_model.py"
+    args_filename               =       "densenet_args.py"
     data_name                   =       "0.5/y_train_2.npy"
+    dataset_name                =       "005-6"
 
     regularization              =       True
     reg_rate                    =       0.00001
@@ -12,21 +13,47 @@ class Train_Args():
     num_classes                 =       6
     use_bottleneck              =       False
 
-    lrn_rate                    =       0.5
+    learning_rate               =       0.5
     min_lrn_rate                =       0.0001
     num_residual_units          =       5
-    optimizer                   =       "mom"    # "mom"  or "sgd"
 
-    batch_size                  =       80
+    batch_size                  =       10
 
     num_epochs                  =       100
 
     weight_decay_rate           =       0.0002
     relu_leakiness              =       0.1
 
+    # depth：Depth of whole network, restricted to paper choices. optional: 40 , 100, 190, 250 
+    depth                       =       40   
 
-    decay_step                  =       100
+    # growth_rate Grows rate for every layer. optional: 12, 24, 40  
+    growth_rate                 =       12  
+
+    # total_blocks: Total blocks of layers stack
+    total_blocks                =       3 
+
+    # bc_mode: should we use bottleneck layers and features reduction or not
+    bc_mode                     =       False  
+
+    # reduction: `float`, reduction Theta at transition layer for DenseNets with bottleneck layers. See paragraph 'Compression'
+    reduction                   =       1.0  
+
+    # model_type: `str`, 'DenseNet' or 'DenseNet-BC'. Should model use bottle neck connections or not.
+    model_type                  =       "DenseNet"  
+
+    # keep_prob: `float`, keep probability for dropout. If keep_prob = 1 dropout will be disables
+    keep_prob                   =       1 
+
+    # weight_decay: Weight decay for optimizer
+    weight_decay                =       1e-4
+
+    # decay_rate:  decay rate for learning rate
     decay_rate                  =       0.9
+    decay_step                  =       300
+
+    # Nesterov momentum
+    nesterov_momentum           =       0.9
     sigma                       =       0.0001
     grad_step                   =       0
     keep_prob                   =       1.0

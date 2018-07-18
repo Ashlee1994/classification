@@ -138,7 +138,7 @@ class ResNet(object):
         global_step=self.global_step, name='train_step')
 
     train_ops = [apply_op] + self._extra_train_ops
-    self.lr = tf.maximum(1e-8,tf.train.exponential_decay(self.args.lrn_rate, self.global_step, self.args.decay_step, self.args.decay_rate, staircase=True))
+    self.lrn_rate = tf.maximum(1e-8,tf.train.exponential_decay(self.lrn_rate, self.global_step, self.args.decay_step, self.args.decay_rate, staircase=True))
     self.train_op = tf.group(*train_ops)
 
   # TODO(xpan): Consider batch_norm in contrib/layers/python/layers/layers.py
