@@ -1,6 +1,6 @@
 class Train_Args():
     is_training                 =       True
-    model_save_path             =       "output/0.5/model/resnet-6_class-1/"
+    model_save_path             =       "output/0.5/model/resnet-6_class-2/"
     model_filename              =       "densenet_model.py"
     args_filename               =       "densenet_args.py"
     data_name                   =       "0.5/y_train_2.npy"
@@ -13,11 +13,11 @@ class Train_Args():
     num_classes                 =       6
     use_bottleneck              =       False
 
-    learning_rate               =       0.5
+    learning_rate               =       0.01
     min_lrn_rate                =       0.0001
     num_residual_units          =       5
 
-    batch_size                  =       10
+    batch_size                  =       5
 
     num_epochs                  =       100
 
@@ -25,7 +25,7 @@ class Train_Args():
     relu_leakiness              =       0.1
 
     # depth：Depth of whole network, restricted to paper choices. optional: 40 , 100, 190, 250 
-    depth                       =       40   
+    depth                       =       100 
 
     # growth_rate Grows rate for every layer. optional: 12, 24, 40  
     growth_rate                 =       12  
@@ -33,14 +33,11 @@ class Train_Args():
     # total_blocks: Total blocks of layers stack
     total_blocks                =       3 
 
-    # bc_mode: should we use bottleneck layers and features reduction or not
-    bc_mode                     =       False  
+    # use_bottleneck: should we use bottleneck layers and features reduction or not
+    use_bottleneck              =       True  
 
     # reduction: `float`, reduction Theta at transition layer for DenseNets with bottleneck layers. See paragraph 'Compression'
     reduction                   =       1.0  
-
-    # model_type: `str`, 'DenseNet' or 'DenseNet-BC'. Should model use bottle neck connections or not.
-    model_type                  =       "DenseNet"  
 
     # keep_prob: `float`, keep probability for dropout. If keep_prob = 1 dropout will be disables
     keep_prob                   =       1 

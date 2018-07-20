@@ -14,7 +14,7 @@ def train():
 
     checkpoint_dir = args.model_save_path
     if not os.path.exists(checkpoint_dir):
-        os.mkdir(checkpoint_dir)
+        os.makedirs(checkpoint_dir)
 
     srcfile = args.model_filename
     dstfile = args.model_save_path + srcfile
@@ -27,7 +27,7 @@ def train():
     num_train_batch = len(train_x) // args.batch_size
     num_test_batch = len(test_x) // args.batch_size
     
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"       # the second GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"       # the second GPU
     best_train_accuracy = 0
     best_test_accuracy = 0
 

@@ -14,7 +14,7 @@ def train():
 
     checkpoint_dir = args.model_save_path
     if not os.path.exists(checkpoint_dir):
-        os.mkdir(checkpoint_dir)
+        os.makedirs(checkpoint_dir)
 
     srcfile = args.model_filename
     dstfile = args.model_save_path + srcfile

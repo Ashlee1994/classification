@@ -6,9 +6,9 @@ from datetime import timedelta
 import numpy as np
 import tensorflow as tf
 
-
 TF_VERSION = float('.'.join(tf.__version__.split('.')[:2]))
 
+# reference: https://blog.csdn.net/u011974639/article/details/78290448
 
 class DenseNet:
     def __init__(self, args):
@@ -25,16 +25,10 @@ class DenseNet:
                 dropout will be disables
             weight_decay: `float`, weight decay for L2 loss, paper = 1e-4
             nesterov_momentum: `float`, momentum for Nesterov optimizer
-            model_type: `str`, 'DenseNet' or 'DenseNet-BC'. Should model use
-                bottle neck connections or not.
-            dataset: `str`, dataset name
-            should_save_logs: `bool`, should logs be saved or not
-            should_save_model: `bool`, should model be saved or not
-            renew_logs: `bool`, remove previous logs for current model
             reduction: `float`, reduction Theta at transition layer for
                 DenseNets with bottleneck layers. See paragraph 'Compression'
                 https://arxiv.org/pdf/1608.06993v3.pdf#4
-            bc_mode: `bool`, should we use bottleneck layers and features
+            use_bottleneck: `bool`, should we use bottleneck layers and features
                 reduction or not.
         """
         self.args = args
@@ -53,21 +47,21 @@ class DenseNet:
         # value the same as in the original Torch code
         self.first_output_features = self.growth_rate * 2
         self.total_blocks = args.total_blocks
+        # pool_layers = self.total_blocks + 1
         self.layers_per_block = (self.depth - (self.total_blocks + 1)) // self.total_blocks
-        self.bc_mode = args.bc_mode
+        self.use_bottleneck = args.use_bottleneck
         # compression rate at the transition layers
         self.reduction = args.reduction
-        self.model_type = args.model_type
 
-        if not self.bc_mode:
-            print("Build %s model with %d blocks, "
+        if not self.use_bottleneck:
+            print("\nBuild %s model with %d blocks, "
                   "%d composite layers each." % (
-                      self.model_type, self.total_blocks, self.layers_per_block))
-        if self.bc_mode:
+                      "DenseNet", self.total_blocks, self.layers_per_block))
+        if self.use_bottleneck:
             self.layers_per_block = self.layers_per_block // 2
-            print("Build %s model with %d blocks, "
+            print("\nBuild %s model with %d blocks, "
                   "%d bottleneck layers and %d composite layers each." % (
-                      self.model_type, self.total_blocks, self.layers_per_block,
+                      "bottleneck DenseNet ", self.total_blocks, self.layers_per_block,
                       self.layers_per_block))
         print("Reduction at transition layers: %.1f" % self.reduction)
 
@@ -76,13 +70,10 @@ class DenseNet:
         self.nesterov_momentum = args.nesterov_momentum
         
         self.dataset_name = args.dataset_name
-        self.should_save_logs = True  # should_save_logs
-        self.should_save_model = True  # should_save_model
-        self.renew_logs = True    # renew_logs
         self.batches_step = 0
 
         self._build_graph()
-        self._initialize_session()
+        # self._initialize_session()
         self._count_trainable_params()
 
     def _initialize_session(self):
@@ -110,59 +101,6 @@ class DenseNet:
                 variable_parametes *= dim.value
             total_parameters += variable_parametes
         print("Total training params: %.1fM" % (total_parameters / 1e6))
-
-    @property
-    def save_path(self):
-        try:
-            save_path = self._save_path
-        except AttributeError:
-            save_path = 'saves/%s' % self.model_identifier
-            os.makedirs(save_path, exist_ok=True)
-            save_path = os.path.join(save_path, 'model.chkpt')
-            self._save_path = save_path
-        return save_path
-
-    @property
-    def logs_path(self):
-        try:
-            logs_path = self._logs_path
-        except AttributeError:
-            logs_path = 'logs/%s' % self.model_identifier
-            if self.renew_logs:
-                shutil.rmtree(logs_path, ignore_errors=True)
-            os.makedirs(logs_path, exist_ok=True)
-            self._logs_path = logs_path
-        return logs_path
-
-    @property
-    def model_identifier(self):
-        return "{}_growth_rate={}_depth={}_dataset_{}".format(
-            self.model_type, self.growth_rate, self.depth, self.dataset_name)
-
-    def save_model(self, global_step=None):
-        self.saver.save(self.sess, self.save_path, global_step=global_step)
-
-    def load_model(self):
-        try:
-            self.saver.restore(self.sess, self.save_path)
-        except Exception as e:
-            raise IOError("Failed to to load model "
-                          "from save path: %s" % self.save_path)
-        self.saver.restore(self.sess, self.save_path)
-        print("Successfully load model from save path: %s" % self.save_path)
-
-    def log_loss_accuracy(self, loss, accuracy, epoch, prefix,
-                          should_print=True):
-        if should_print:
-            print("mean cross_entropy: %f, mean accuracy: %f" % (
-                loss, accuracy))
-        summary = tf.Summary(value=[
-            tf.Summary.Value(
-                tag='loss_%s' % prefix, simple_value=float(loss)),
-            tf.Summary.Value(
-                tag='accuracy_%s' % prefix, simple_value=float(accuracy))
-        ])
-        self.summary_writer.add_summary(summary, epoch)
 
     def composite_function(self, _input, out_features, kernel_size=3):
         """Function from paper H_l that performs:
@@ -199,10 +137,10 @@ class DenseNet:
         input with output from composite function.
         """
         # call composite function with 3x3 kernel
-        if not self.bc_mode:
+        if not self.use_bottleneck:
             comp_out = self.composite_function(
                 _input, out_features=growth_rate, kernel_size=3)
-        elif self.bc_mode:
+        elif self.use_bottleneck:
             bottleneck_out = self.bottleneck(_input, out_features=growth_rate)
             comp_out = self.composite_function(
                 bottleneck_out, out_features=growth_rate, kernel_size=3)
@@ -259,7 +197,7 @@ class DenseNet:
     def conv2d(self, _input, out_features, kernel_size,
                strides=[1, 1, 1, 1], padding='SAME'):
         in_features = int(_input.get_shape()[-1])
-        kernel = self.weight_variable_msra(
+        kernel = self.weight_variable_random_normal(
             [kernel_size, kernel_size, in_features, out_features],
             name='kernel')
         output = tf.nn.conv2d(_input, kernel, strides, padding)
@@ -300,6 +238,14 @@ class DenseNet:
             name,
             shape=shape,
             initializer=tf.contrib.layers.xavier_initializer())
+
+    def weight_variable_random_normal(self, shape, name):
+        # shape = [kernel_size, kernel_size, in_features, out_features]
+        n = shape[0] * shape[0] * shape[3]
+        return tf.get_variable(
+            name,
+            shape=shape,
+            initializer=tf.random_normal_initializer(stddev=np.sqrt(2.0/n)))
 
     def bias_variable(self, shape, name='bias'):
         initial = tf.constant(0.0, shape=shape)
