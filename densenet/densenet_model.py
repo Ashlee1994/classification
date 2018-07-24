@@ -15,22 +15,8 @@ class DenseNet:
         """
         Class to implement networks from this paper
         https://arxiv.org/pdf/1611.05552.pdf
-
-        Args:
-            data_provider: Class, that have all required data sets
-            growth_rate: `int`, variable from paper
-            depth: `int`, variable from paper
-            total_blocks: `int`, paper value == 3
-            keep_prob: `float`, keep probability for dropout. If keep_prob = 1
-                dropout will be disables
-            weight_decay: `float`, weight decay for L2 loss, paper = 1e-4
-            nesterov_momentum: `float`, momentum for Nesterov optimizer
-            reduction: `float`, reduction Theta at transition layer for
-                DenseNets with bottleneck layers. See paragraph 'Compression'
-                https://arxiv.org/pdf/1608.06993v3.pdf#4
-            use_bottleneck: `bool`, should we use bottleneck layers and features
-                reduction or not.
         """
+
         self.args = args
         self.global_step = tf.train.get_or_create_global_step()
         self.images = tf.placeholder(tf.float32, shape = [args.batch_size, 180, 180, 1],name='input_images')
@@ -39,7 +25,6 @@ class DenseNet:
         self.learning_rate = tf.convert_to_tensor(args.learning_rate, dtype=tf.float32)
 
         self.is_training = args.is_training
-
         self.n_classes = args.num_classes
         self.depth = args.depth
         self.growth_rate = args.growth_rate
@@ -66,15 +51,60 @@ class DenseNet:
         print("Reduction at transition layers: %.1f" % self.reduction)
 
         self.keep_prob = args.keep_prob
-        self.weight_decay = args.decay_rate
+        self.weight_decay = args.weight_decay
         self.nesterov_momentum = args.nesterov_momentum
         
         self.dataset_name = args.dataset_name
-        self.batches_step = 0
-
         self._build_graph()
-        # self._initialize_session()
         self._count_trainable_params()
+
+    def _build_graph(self):
+        growth_rate = self.growth_rate
+        layers_per_block = self.layers_per_block
+        # first - initial 3 x 3 conv to first_output_features
+        with tf.variable_scope("Initial_convolution"):
+            output = self.conv2d(
+                self.images,
+                out_features=self.first_output_features,
+                kernel_size=7)
+
+        # add N required blocks
+        for block in range(self.total_blocks):
+            with tf.variable_scope("Block_%d" % block):
+                output = self.add_block(output, growth_rate, layers_per_block)
+            # last block exist without transition layer
+            if block != self.total_blocks - 1:
+                with tf.variable_scope("Transition_after_block_%d" % block):
+                    output = self.transition_layer(output)
+
+        with tf.variable_scope("Transition_to_classes"):
+            self.logits = self.transition_layer_to_classes(output)
+        self.prediction = tf.nn.softmax(self.logits)
+
+        # Losses
+        self.cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            logits=self.logits, labels=self.labels))
+        self.l2_loss = tf.add_n(
+            [tf.nn.l2_loss(var) for var in tf.trainable_variables()])
+
+        # optimizer and train step
+        self.optimizer = tf.train.MomentumOptimizer(
+            self.learning_rate, self.nesterov_momentum, use_nesterov=True)
+
+        # self.train_step = self.optimizer.minimize(
+         #    self.cross_entropy + self.l2_loss * self.weight_decay, global_step=self.global_step)
+
+        # self.train_step = self.optimizer.minimize(self.cross_entropy, global_step=self.global_step)
+        self.train_step = tf.train.GradientDescentOptimizer(
+            self.learning_rate).minimize(self.cross_entropy + self.l2_loss * self.weight_decay, global_step=self.global_step )
+
+        self.learning_rate = tf.maximum(1e-8,tf.train.exponential_decay(self.args.learning_rate, self.global_step, self.args.decay_step, self.args.decay_rate, staircase=True))
+        self.lr = tf.to_float(self.learning_rate, name='ToFloat')
+
+        self.correct_prediction = tf.equal(
+            tf.argmax(self.prediction, 1),
+            tf.argmax(self.labels, 1))
+        self.accuracy = tf.reduce_mean(tf.cast(self.correct_prediction, tf.float32))
 
     def _initialize_session(self):
         """Initialize session, variables, saver"""
@@ -137,7 +167,7 @@ class DenseNet:
         input with output from composite function.
         """
         # call composite function with 3x3 kernel
-        if not self.use_bottleneck:
+        if not self.use_bottleneck: 
             comp_out = self.composite_function(
                 _input, out_features=growth_rate, kernel_size=3)
         elif self.use_bottleneck:
@@ -250,47 +280,3 @@ class DenseNet:
     def bias_variable(self, shape, name='bias'):
         initial = tf.constant(0.0, shape=shape)
         return tf.get_variable(name, initializer=initial)
-
-    def _build_graph(self):
-        growth_rate = self.growth_rate
-        layers_per_block = self.layers_per_block
-        # first - initial 3 x 3 conv to first_output_features
-        with tf.variable_scope("Initial_convolution"):
-            output = self.conv2d(
-                self.images,
-                out_features=self.first_output_features,
-                kernel_size=3)
-
-        # add N required blocks
-        for block in range(self.total_blocks):
-            with tf.variable_scope("Block_%d" % block):
-                output = self.add_block(output, growth_rate, layers_per_block)
-            # last block exist without transition layer
-            if block != self.total_blocks - 1:
-                with tf.variable_scope("Transition_after_block_%d" % block):
-                    output = self.transition_layer(output)
-
-        with tf.variable_scope("Transition_to_classes"):
-            logits = self.transition_layer_to_classes(output)
-        prediction = tf.nn.softmax(logits)
-
-        # Losses
-        cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-            logits=logits, labels=self.labels))
-        self.cross_entropy = cross_entropy
-        l2_loss = tf.add_n(
-            [tf.nn.l2_loss(var) for var in tf.trainable_variables()])
-
-        # optimizer and train step
-        optimizer = tf.train.MomentumOptimizer(
-            self.learning_rate, self.nesterov_momentum, use_nesterov=True)
-        self.train_step = optimizer.minimize(
-            cross_entropy + l2_loss * self.weight_decay, global_step=self.global_step)
-
-        self.learning_rate = tf.maximum(1e-8,tf.train.exponential_decay(self.args.learning_rate, self.global_step, self.args.decay_step, self.args.decay_rate, staircase=True))
-        self.lr = tf.to_float(self.learning_rate, name='ToFloat')
-
-        correct_prediction = tf.equal(
-            tf.argmax(prediction, 1),
-            tf.argmax(self.labels, 1))
-        self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))

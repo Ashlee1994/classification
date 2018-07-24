@@ -21,7 +21,7 @@ def train():
     shutil.copyfile(srcfile,dstfile)
     shutil.copyfile(args.args_filename,args.model_save_path + args.args_filename)
 
-    train_x, train_y, test_x, test_y = load_train_05_6_shuffle()
+    train_x, train_y, test_x, test_y = load_train_005_6_shuffle()
     
     print("train size is %d " % len(train_x),flush=True)
     num_train_batch = len(train_x) // args.batch_size
@@ -63,7 +63,7 @@ def train():
             print("avg acc: %.6f" % train_acc )
             print("best_train_accuracy: %.6f" % best_train_accuracy,flush=True)
 
-            if e % 10 == 0 or e == args.num_epochs -1:
+            if e % 5 == 0 or e == args.num_epochs -1:
                 print("\ntesting start.",flush=True)
                 print("num_test_batch is %d" % num_test_batch,flush=True)
                 acc_test = []

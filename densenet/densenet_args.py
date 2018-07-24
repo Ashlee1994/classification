@@ -1,6 +1,6 @@
 class Train_Args():
     is_training                 =       True
-    model_save_path             =       "output/0.5/model/resnet-6_class-2/"
+    model_save_path             =       "output/0.05/densenet-0.5-SGD--6_class-1/"
     model_filename              =       "densenet_model.py"
     args_filename               =       "densenet_args.py"
     data_name                   =       "0.5/y_train_2.npy"
@@ -9,11 +9,11 @@ class Train_Args():
     regularization              =       True
     reg_rate                    =       0.00001
     dropout                     =       True
-    dropout_rate                =       0.5
+    dropout_rate                =       0.001
     num_classes                 =       6
     use_bottleneck              =       False
 
-    learning_rate               =       0.01
+    learning_rate               =       0.3
     min_lrn_rate                =       0.0001
     num_residual_units          =       5
 
@@ -25,7 +25,7 @@ class Train_Args():
     relu_leakiness              =       0.1
 
     # depth：Depth of whole network, restricted to paper choices. optional: 40 , 100, 190, 250 
-    depth                       =       100 
+    depth                       =       100
 
     # growth_rate Grows rate for every layer. optional: 12, 24, 40  
     growth_rate                 =       12  
@@ -43,11 +43,11 @@ class Train_Args():
     keep_prob                   =       1 
 
     # weight_decay: Weight decay for optimizer
-    weight_decay                =       1e-4
+    weight_decay                =       1e-5
 
     # decay_rate:  decay rate for learning rate
     decay_rate                  =       0.9
-    decay_step                  =       300
+    decay_step                  =       500
 
     # Nesterov momentum
     nesterov_momentum           =       0.9

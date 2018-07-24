@@ -15,8 +15,8 @@ def load_train_2():
     train_y = np.load('../0.5/y_train_2.npy')
     test_y = np.load('../0.5/y_test_2.npy')
 
-    train_x_tmp1 = np.load('0.5/x_train_1000_a_new.npy')
-    train_x_tmp2 = np.load('0.5/x_train_1000_b_new.npy')
+    train_x_tmp1 = np.load('../0.5/x_train_1000_a_new.npy')
+    train_x_tmp2 = np.load('../0.5/x_train_1000_b_new.npy')
 
     train_x = np.vstack([train_x_tmp1,train_x_tmp2])
 
@@ -46,7 +46,7 @@ def load_train_2():
     train_x = train_x[index]
     train_y = train_y[index]
     
-
+    '''
     print("shape of train_x: ", train_x.shape)
     print("shape of train_y: ", train_y.shape)
     print("shape of test_x: ", test_x.shape)
@@ -56,6 +56,7 @@ def load_train_2():
     # print("train_y: ", train_y)
     print("test_x:" , test_x)
     # print("test_y: ", test_y)
+    '''
     return train_x, train_y, test_x, test_y
 
 
