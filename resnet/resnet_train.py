@@ -21,13 +21,15 @@ def train():
     shutil.copyfile(srcfile,dstfile)
     shutil.copyfile(args.args_filename,args.model_save_path + args.args_filename)
 
-    train_x, train_y, test_x, test_y = load_train_05_6_shuffle()
+    train_x, train_y, test_x, test_y = load_sd1_sd2_train() # load_joind_sd1_sd2_train() # load_train_2() # load_sd1_sd2_train()
+    # print("test_x: " , test_x)
+    # print("test_y: " , test_y)
     
     print("train size is %d " % len(train_x),flush=True)
     num_train_batch = len(train_x) // args.batch_size
     num_test_batch = len(test_x) // args.batch_size
     
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"       # the second GPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"      # the second GPU
     best_train_accuracy = 0
     best_test_accuracy = 0
 
@@ -63,7 +65,7 @@ def train():
             print("avg acc: %.6f" % train_acc )
             print("best_train_accuracy: %.6f" % best_train_accuracy,flush=True)
 
-            if e % 10 == 0 or e == args.num_epochs -1:
+            if e % 3 == 0 or e == args.num_epochs -1:
                 print("\ntesting start.",flush=True)
                 print("num_test_batch is %d" % num_test_batch,flush=True)
                 acc_test = []

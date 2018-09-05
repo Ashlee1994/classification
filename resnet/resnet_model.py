@@ -50,7 +50,7 @@ class ResNet(object):
 
   def _build_model(self):
     """Build the core model within the graph."""
-    self._images = tf.placeholder(tf.float32, shape = [self.args.batch_size, 180, 180, 1])
+    self._images = tf.placeholder(tf.float32, shape = [self.args.batch_size, self.args.boxsize, self.args.boxsize, 1])
     self.labels = tf.placeholder(tf.float32, shape = [self.args.batch_size,self.args.num_classes])
 
     self._images = tf.cast(self._images, tf.float32)
@@ -282,6 +282,9 @@ class ResNet(object):
   def _fully_connected(self, x, out_dim):
     """FullyConnected layer for final output."""
     x = tf.reshape(x, [self.args.batch_size, -1])
+    if self.args.is_training and self.args.dropout:
+            x = tf.nn.dropout(x, self.args.dropout_rate)
+    # x = self._dropout(x)
     w = tf.get_variable(
         'DW', [x.get_shape()[1], out_dim],
         initializer=tf.uniform_unit_scaling_initializer(factor=1.0))
@@ -292,3 +295,14 @@ class ResNet(object):
   def _global_avg_pool(self, x):
     assert x.get_shape().ndims == 4
     return tf.reduce_mean(x, [1, 2])
+
+  def _dropout(self, _input):
+      if self.args.dropout_rate < 1:
+          output = tf.cond(
+              self.args.is_training,
+              lambda: tf.nn.dropout(_input, self.args.dropout_rate),
+              lambda: _input
+          )
+      else:
+          output = _input
+      return output
